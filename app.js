@@ -406,11 +406,15 @@
       grid: {
         top: 44,
         right: 48,
-        bottom: 42,
+        bottom: 68,
         left: 48
       },
       xAxis: {
         type: 'time',
+        name: 'Hour ending (Bangkok time)',
+        nameLocation: 'middle',
+        nameGap: 42,
+        nameTextStyle: axisNameTextStyle(),
         axisLabel: { formatter: formatAxisTime }
       },
       yAxis: [
@@ -467,11 +471,15 @@
       grid: {
         top: 18,
         right: 18,
-        bottom: 72,
+        bottom: 98,
         left: mode === 'month' ? 70 : 54
       },
       xAxis: {
         type: 'category',
+        name: heat.xName,
+        nameLocation: 'middle',
+        nameGap: 32,
+        nameTextStyle: axisNameTextStyle(),
         data: heat.xLabels,
         splitArea: { show: true },
         axisLabel: { interval: heat.xInterval }
@@ -553,11 +561,15 @@
       grid: {
         top: 44,
         right: 22,
-        bottom: 42,
+        bottom: 68,
         left: 50
       },
       xAxis: {
         type: 'time',
+        name: 'Hour ending (Bangkok time)',
+        nameLocation: 'middle',
+        nameGap: 42,
+        nameTextStyle: axisNameTextStyle(),
         axisLabel: { formatter: formatAxisTime }
       },
       yAxis: {
@@ -666,6 +678,7 @@
     return {
       title: 'PM2.5 by weekday and hour ending',
       subtitle: 'Weekly pattern',
+      xName: 'Hour ending (Bangkok time)',
       xLabels: hours,
       yLabels: days,
       xInterval: 2,
@@ -714,6 +727,7 @@
     return {
       title: 'PM2.5 by hour ending',
       subtitle: `Daily pattern ${label}`,
+      xName: 'Hour ending (Bangkok time)',
       xLabels: hours,
       yLabels: [label],
       xInterval: 1,
@@ -770,6 +784,7 @@
     return {
       title: 'PM2.5 by day and hour ending',
       subtitle: 'Monthly pattern',
+      xName: 'Hour ending (Bangkok time)',
       xLabels: hours,
       yLabels: labels,
       xInterval: 2,
@@ -821,6 +836,7 @@
     return {
       title: 'PM2.5 daily average by month',
       subtitle: 'Yearly pattern',
+      xName: 'Month',
       xLabels: months,
       yLabels: days,
       xInterval: 0,
@@ -979,6 +995,14 @@
   function formatAxisTime(value) {
     const shifted = new Date(Number(value) + BANGKOK_OFFSET_MS);
     return `${pad2(shifted.getUTCDate())}/${pad2(shifted.getUTCMonth() + 1)} ${pad2(shifted.getUTCHours())}:00`;
+  }
+
+  function axisNameTextStyle() {
+    return {
+      color: '#64717f',
+      fontWeight: 700,
+      fontSize: 12
+    };
   }
 
   function formatFullTime(ts) {
