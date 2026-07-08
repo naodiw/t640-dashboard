@@ -26,6 +26,7 @@
   function bindElements() {
     [
       'liveStatus', 'refreshButton', 'rangeControl', 'resolutionSelect', 'pm25Card', 'pm10Card',
+      'pageTitle', 'sourceNote', 'ownerNote',
       'warningCard', 'pm25Value', 'pm10Value', 'tempValue', 'pressureValue',
       'warningValue', 'pm25Meta', 'pm10Meta', 'tempMeta', 'pressureMeta',
       'lastSeenMeta', 'pointCount', 'warningList', 'heatmapModeControl', 'heatmapSubtitle',
@@ -287,10 +288,23 @@
     const latest = data.latest || {};
     const rows = Array.isArray(data.rows) ? data.rows : [];
 
+    renderConfig(data.config || {});
     renderStatus(latest);
     renderMetrics(data, latest);
     renderCharts(rows, data);
     renderWarnings(rows);
+  }
+
+  function renderConfig(config) {
+    const pageTitle = cleanConfigText(config.page_title) || 'T640 Live Dashboard';
+    const sourceNote = cleanConfigText(config.source_note) || 'Public Air Monitor';
+    const ownerNote = cleanConfigText(config.owner_note);
+
+    document.title = pageTitle;
+    el.pageTitle.textContent = pageTitle;
+    el.sourceNote.textContent = sourceNote;
+    el.ownerNote.textContent = ownerNote;
+    el.ownerNote.hidden = !ownerNote;
   }
 
   function renderStatus(latest) {
@@ -942,5 +956,9 @@
       pad2(shifted.getUTCMonth() + 1),
       pad2(shifted.getUTCDate())
     ].join('-') + ` ${pad2(shifted.getUTCHours())}:${pad2(shifted.getUTCMinutes())}`;
+  }
+
+  function cleanConfigText(value) {
+    return String(value || '').trim();
   }
 })();

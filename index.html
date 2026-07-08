@@ -8,19 +8,20 @@
     window.T640_DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
   </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2320262f'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%2316a36f'/%3E%3Ccircle cx='32' cy='32' r='7' fill='white'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=hour-end-safe">
+  <link rel="stylesheet" href="./style.css?v=sheet-config">
   <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
   <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script defer src="./app.js?v=hour-end-safe"></script>
+  <script defer src="./app.js?v=sheet-config"></script>
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span></span></div>
-        <div>
-          <p class="eyebrow">Public Air Monitor</p>
-          <h1>T640 Live Dashboard</h1>
+        <div class="brand-copy">
+          <p id="sourceNote" class="eyebrow">Public Air Monitor</p>
+          <h1 id="pageTitle">T640 Live Dashboard</h1>
+          <p id="ownerNote" class="owner-note" hidden></p>
         </div>
       </div>
       <div class="top-actions">

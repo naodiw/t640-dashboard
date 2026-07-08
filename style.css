@@ -61,6 +61,10 @@ input {
   min-width: 0;
 }
 
+.brand-copy {
+  min-width: 0;
+}
+
 .brand-mark {
   display: grid;
   place-items: center;
@@ -105,6 +109,13 @@ h1 {
   color: #ffffff;
   font-size: clamp(1.45rem, 3vw, 2.15rem);
   line-height: 1.05;
+}
+
+.owner-note {
+  margin: 6px 0 0;
+  color: #d6dee8;
+  font-size: 0.9rem;
+  line-height: 1.25;
 }
 
 h2 {
