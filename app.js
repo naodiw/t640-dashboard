@@ -2,12 +2,32 @@
   const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
   const API_URL = window.T640_DASHBOARD_API || DEFAULT_API_URL;
   const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const PM25_UNIT = 'µg/m³';
+  const HOUR_ENDING_AXIS_NAME = 'เวลาสิ้นสุดชั่วโมง (เวลาไทย)';
+  const WARNING_META = {
+    BOX_TEMP_WARNING: { label: 'Box temperature', severity: 'elevated' },
+    SAMPLE_FLOW_WARNING: { label: 'Sample flow', severity: 'high' },
+    INTERNAL_SERIAL_TIMEOUT: { label: 'Internal serial timeout', severity: 'high' },
+    SYSTEM_RESET_WARNING: { label: 'System reset', severity: 'watch' },
+    SYS_OK_WARN: { label: 'System OK flag', severity: 'watch' },
+    SAMPLE_TEMPERATURE_WARNING: { label: 'Sample temperature', severity: 'elevated' },
+    BYPASS_FLOW_WARNING: { label: 'Bypass flow', severity: 'high' },
+    SYSTEM_FAULT_WARNING: { label: 'System fault', severity: 'severe' }
+  };
+  const SEVERITY_RANK = { good: 0, watch: 1, elevated: 2, high: 3, severe: 4 };
+  const SEVERITY_LABEL = {
+    watch: 'เฝ้าระวัง',
+    elevated: 'ผิดปกติ',
+    high: 'สูง',
+    severe: 'รุนแรง'
+  };
   const state = {
     days: 7,
     rangeMode: 'quick',
     resolution: 'auto',
     heatmapMode: 'week',
     periodValue: '',
+    headerExpanded: false,
     data: null
   };
   const charts = {};
@@ -20,13 +40,16 @@
     initCharts();
     refreshIcons();
     loadDashboard();
-    window.addEventListener('resize', debounce(resizeCharts, 150));
+    window.addEventListener('resize', debounce(() => {
+      resizeCharts();
+      syncHeaderDetailsToggle();
+    }, 150));
   });
 
   function bindElements() {
     [
       'liveStatus', 'refreshButton', 'rangeControl', 'resolutionSelect', 'pm25Card', 'pm10Card',
-      'pageTitle', 'sourceNote', 'ownerNote',
+      'pageTitle', 'sourceNote', 'ownerNote', 'headerDetailsToggle',
       'warningCard', 'pm25Value', 'pm10Value', 'tempValue', 'pressureValue',
       'warningValue', 'pm25Meta', 'pm10Meta', 'tempMeta', 'pressureMeta',
       'lastSeenMeta', 'pointCount', 'warningList', 'heatmapModeControl', 'heatmapSubtitle',
@@ -55,6 +78,12 @@
     });
 
     el.refreshButton.addEventListener('click', () => loadDashboard());
+
+    el.headerDetailsToggle.addEventListener('click', () => {
+      state.headerExpanded = !state.headerExpanded;
+      applyHeaderExpandedState();
+      window.setTimeout(syncHeaderDetailsToggle, 0);
+    });
 
     el.heatmapModeControl.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-mode]');
@@ -157,19 +186,19 @@
       el.periodInput.min = '2000';
       el.periodInput.max = '2100';
       el.periodInput.step = '1';
-      el.periodInputLabel.textContent = 'Year';
+      el.periodInputLabel.textContent = 'ปี';
     } else if (state.heatmapMode === 'month') {
       el.periodInput.type = 'month';
       el.periodInput.removeAttribute('min');
       el.periodInput.removeAttribute('max');
       el.periodInput.removeAttribute('step');
-      el.periodInputLabel.textContent = 'Month';
+      el.periodInputLabel.textContent = 'เดือน';
     } else if (state.heatmapMode === 'day') {
       el.periodInput.type = 'date';
-      el.periodInputLabel.textContent = 'Date';
+      el.periodInputLabel.textContent = 'วันที่';
     } else {
       el.periodInput.type = 'date';
-      el.periodInputLabel.textContent = 'Week of';
+      el.periodInputLabel.textContent = 'สัปดาห์ของ';
     }
     el.periodInput.value = state.periodValue;
   }
@@ -292,12 +321,12 @@
     renderStatus(latest);
     renderMetrics(data, latest);
     renderCharts(rows, data);
-    renderWarnings(rows);
+    renderWarnings(rows, data);
   }
 
   function renderConfig(config) {
     const pageTitle = cleanConfigText(config.page_title) || 'T640 Live Dashboard';
-    const sourceNote = cleanConfigText(config.source_note) || 'Public Air Monitor';
+    const sourceNote = cleanConfigText(config.source_note) || 'ข้อมูลจากเครื่อง T640';
     const ownerNote = cleanConfigText(config.owner_note);
 
     document.title = pageTitle;
@@ -305,21 +334,49 @@
     el.sourceNote.textContent = sourceNote;
     el.ownerNote.textContent = ownerNote;
     el.ownerNote.hidden = !ownerNote;
+    el.pageTitle.title = pageTitle;
+    el.sourceNote.title = sourceNote;
+    el.ownerNote.title = ownerNote;
+    applyHeaderExpandedState();
+    window.setTimeout(syncHeaderDetailsToggle, 0);
+  }
+
+  function applyHeaderExpandedState() {
+    const copy = el.pageTitle.closest('.brand-copy');
+    copy.classList.toggle('is-expanded', state.headerExpanded);
+    copy.classList.toggle('is-collapsed', !state.headerExpanded);
+    el.headerDetailsToggle.textContent = state.headerExpanded ? 'ย่อรายละเอียด' : 'แสดงรายละเอียด';
+    el.headerDetailsToggle.setAttribute('aria-expanded', String(state.headerExpanded));
+  }
+
+  function syncHeaderDetailsToggle() {
+    const copy = el.pageTitle.closest('.brand-copy');
+    const wasHidden = el.headerDetailsToggle.hidden;
+    el.headerDetailsToggle.hidden = true;
+    const overflowTolerance = 8;
+    const hasOverflow = [el.pageTitle, el.sourceNote, el.ownerNote]
+      .filter((node) => node && !node.hidden)
+      .some((node) => node.scrollHeight > node.clientHeight + overflowTolerance || node.scrollWidth > node.clientWidth + overflowTolerance);
+    el.headerDetailsToggle.hidden = !hasOverflow && !state.headerExpanded;
+    if (wasHidden !== el.headerDetailsToggle.hidden) copy.classList.toggle('has-toggle', !el.headerDetailsToggle.hidden);
   }
 
   function renderStatus(latest) {
     el.liveStatus.classList.remove('status-live', 'status-stale', 'status-muted');
     if (!latest.ts) {
       el.liveStatus.textContent = 'NO DATA';
+      el.liveStatus.title = 'ยังไม่มีข้อมูลจากเครื่องในช่วงที่เลือก';
       el.liveStatus.classList.add('status-muted');
       return;
     }
     if (latest.stale) {
       el.liveStatus.textContent = `STALE ${latest.ageMinutes}m`;
+      el.liveStatus.title = `STALE = ข้อมูลล่าสุดจากเครื่องเก่ากว่าเกณฑ์ ${latest.thresholdMinutes} นาที`;
       el.liveStatus.classList.add('status-stale');
       return;
     }
     el.liveStatus.textContent = `LIVE ${latest.ageMinutes}m`;
+    el.liveStatus.title = `LIVE = ได้รับข้อมูลล่าสุดจากเครื่องเมื่อประมาณ ${latest.ageMinutes} นาทีที่แล้ว`;
     el.liveStatus.classList.add('status-live');
   }
 
@@ -329,14 +386,14 @@
     setMetric(el.pm10Value, latest.pm10, 1);
     setMetric(el.tempValue, latest.temp, 1);
     setMetric(el.pressureValue, latest.pressure, 1);
-    el.warningValue.textContent = latest.warnings || '--';
+    el.warningValue.textContent = instrumentStatusText(latest.warnings);
 
     el.pm25Meta.textContent = metricTimeMeta(latest.label, latest.pm25TsLabel || latest.updatedLabel, summary.pm25);
     el.pm10Meta.textContent = metricTimeMeta(latest.label, latest.pm10TsLabel || latest.updatedLabel, summary.pm10);
-    el.tempMeta.textContent = summary.temp && summary.temp.avg != null ? `Range avg ${formatNumber(summary.temp.avg, 1)}` : 'Outdoor sensor';
-    el.pressureMeta.textContent = latest.updatedLabel ? `Data ${latest.updatedLabel}` : 'Barometric';
-    el.lastSeenMeta.textContent = latest.updatedLabel ? `Updated ${latest.updatedLabel}` : (latest.label ? `Hour ${latest.label}` : '--');
-    el.pointCount.textContent = `${rowsLabel(data.summary && data.summary.count)} points`;
+    el.tempMeta.textContent = summary.temp && summary.temp.avg != null ? `เฉลี่ยช่วงที่เลือก ${formatNumber(summary.temp.avg, 1)}` : 'เซนเซอร์ภายนอก';
+    el.pressureMeta.textContent = latest.updatedLabel ? `ข้อมูล ${latest.updatedLabel}` : 'ความดันบรรยากาศ';
+    el.lastSeenMeta.textContent = latest.updatedLabel ? `อัปเดต ${latest.updatedLabel}` : (latest.label ? `ชั่วโมง ${latest.label}` : '--');
+    el.pointCount.textContent = `${rowsLabel(data.summary && data.summary.count)} จุดข้อมูล`;
 
     applyLevel(el.pm25Card, levelForPm25(latest.pm25));
     applyLevel(el.pm10Card, levelForPm10(latest.pm10));
@@ -354,7 +411,7 @@
   function renderPmChart(rows) {
     charts.pm.setOption(baseLineOption({
       legend: ['PM2.5', 'PM10'],
-      yName: 'ug/m3',
+      yName: PM25_UNIT,
       series: [
         lineSeries('PM2.5', rows, 'pm25', '#16a36f', {
           areaColor: riskAreaGradient('rgba(22, 163, 111, 0.08)'),
@@ -374,8 +431,9 @@
         })
       ],
       markLines: [
-        { yAxis: 15, name: '15' },
-        { yAxis: 37.5, name: '37.5' }
+        { yAxis: 15, name: 'ดี' },
+        { yAxis: 25, name: 'เริ่มสูง' },
+        { yAxis: 37.5, name: 'สูง' }
       ]
     }), true);
   }
@@ -383,7 +441,7 @@
   function renderRollingChart(rows) {
     charts.rolling.setOption(baseLineOption({
       legend: ['PM2.5 24h', 'PM10 24h'],
-      yName: 'ug/m3',
+      yName: PM25_UNIT,
       series: [
         lineSeries('PM2.5 24h', rows, 'pm25_24h', '#df6a2e'),
         lineSeries('PM10 24h', rows, 'pm10_24h', '#20262f')
@@ -401,7 +459,7 @@
       },
       legend: {
         top: 0,
-        data: ['Temp', 'Pressure']
+        data: ['อุณหภูมิ', 'ความดัน']
       },
       grid: {
         top: 44,
@@ -411,7 +469,7 @@
       },
       xAxis: {
         type: 'time',
-        name: 'Hour ending (Bangkok time)',
+        name: HOUR_ENDING_AXIS_NAME,
         nameLocation: 'middle',
         nameGap: 42,
         nameTextStyle: axisNameTextStyle(),
@@ -420,7 +478,7 @@
       yAxis: [
         {
           type: 'value',
-          name: 'deg C',
+          name: '°C',
           scale: true,
           splitLine: { lineStyle: { color: '#e6ebef' } }
         },
@@ -433,7 +491,7 @@
       ],
       series: [
         {
-          name: 'Temp',
+          name: 'อุณหภูมิ',
           type: 'line',
           yAxisIndex: 0,
           showSymbol: false,
@@ -441,7 +499,7 @@
           data: rows.map((row) => [row.ts, row.temp])
         },
         {
-          name: 'Pressure',
+          name: 'ความดัน',
           type: 'line',
           yAxisIndex: 1,
           showSymbol: false,
@@ -464,7 +522,7 @@
       tooltip: {
         position: 'top',
         formatter: (params) => {
-          if (params.seriesName === 'No data') return heat.missingTooltip(params);
+          if (params.seriesName === 'ไม่มีข้อมูล') return heat.missingTooltip(params);
           return heat.tooltip(params);
         }
       },
@@ -496,6 +554,8 @@
         orient: 'horizontal',
         left: 'center',
         bottom: 12,
+        text: ['PM2.5 สูง', 'PM2.5 ต่ำ'],
+        textStyle: { color: '#64717f', fontWeight: 700 },
         seriesIndex: 1,
         inRange: {
           color: ['#d8f1e7', '#f4d35e', '#ee964b', '#c93b3b']
@@ -503,7 +563,7 @@
       },
       series: [
         {
-          name: 'No data',
+          name: 'ไม่มีข้อมูล',
           type: 'heatmap',
           data: heat.missingData,
           itemStyle: {
@@ -544,7 +604,8 @@
           label: { color: '#64717f' },
           lineStyle: { color: '#aeb7c2', type: 'dashed' },
           data: markLines
-        }
+        },
+        markArea: pm25ThresholdBands()
       };
     });
     return {
@@ -566,7 +627,7 @@
       },
       xAxis: {
         type: 'time',
-        name: 'Hour ending (Bangkok time)',
+        name: HOUR_ENDING_AXIS_NAME,
         nameLocation: 'middle',
         nameGap: 42,
         nameTextStyle: axisNameTextStyle(),
@@ -620,34 +681,129 @@
     ]);
   }
 
-  function renderWarnings(rows) {
-    const warnings = rows
-      .filter((row) => row.warnings && row.warnings !== 'OK')
-      .slice(-3)
-      .reverse();
+  function pm25ThresholdBands() {
+    return {
+      silent: true,
+      label: { show: false },
+      data: [
+        [
+          { yAxis: 0, itemStyle: { color: 'rgba(22, 163, 111, 0.035)' } },
+          { yAxis: 15 }
+        ],
+        [
+          { yAxis: 15, itemStyle: { color: 'rgba(244, 211, 94, 0.055)' } },
+          { yAxis: 25 }
+        ],
+        [
+          { yAxis: 25, itemStyle: { color: 'rgba(238, 106, 46, 0.06)' } },
+          { yAxis: 37.5 }
+        ],
+        [
+          { yAxis: 37.5, itemStyle: { color: 'rgba(201, 59, 59, 0.07)' } },
+          { yAxis: 150 }
+        ]
+      ]
+    };
+  }
+
+  function renderWarnings(rows, data) {
+    const bucketMinutes = data && data.range && data.range.bucketMinutes ? data.range.bucketMinutes : 60;
+    const warnings = groupWarningEvents(rows, bucketMinutes).slice(-3).reverse();
     el.warningList.replaceChildren();
     if (!warnings.length) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.textContent = 'OK in selected range';
+      empty.textContent = 'ไม่พบเหตุการณ์เตือนในช่วงที่เลือก';
       el.warningList.appendChild(empty);
       return;
     }
 
-    warnings.forEach((row) => {
+    warnings.forEach((group) => {
       const item = document.createElement('div');
-      item.className = 'warning-item';
+      item.className = `warning-item severity-${group.severity}`;
+      const top = document.createElement('div');
+      top.className = 'warning-item-top';
       const title = document.createElement('strong');
-      title.textContent = row.warnings;
+      title.textContent = warningTitle(group.warnings);
+      const badge = document.createElement('span');
+      badge.className = `warning-badge severity-${group.severity}`;
+      badge.textContent = SEVERITY_LABEL[group.severity] || 'เตือน';
       const time = document.createElement('span');
-      time.textContent = row.label || formatFullTime(row.ts);
-      item.append(title, time);
+      time.textContent = warningGroupTimeLabel(group, bucketMinutes);
+      top.append(title, badge);
+      item.append(top, time);
       el.warningList.appendChild(item);
     });
   }
 
+  function groupWarningEvents(rows, bucketMinutes) {
+    const groups = [];
+    let active = null;
+    rows.forEach((row) => {
+      const warnings = warningList(row.warnings);
+      if (!warnings.length) {
+        active = null;
+        return;
+      }
+
+      const signature = warnings.slice().sort().join(';');
+      if (active && active.signature === signature) {
+        active.count += 1;
+        active.endTs = row.ts;
+        active.endLabel = row.label || formatFullTime(row.ts);
+        active.durationMinutes += bucketMinutes;
+        return;
+      }
+
+      active = {
+        signature,
+        warnings,
+        severity: warningSeverity(warnings),
+        count: 1,
+        startTs: row.ts,
+        endTs: row.ts,
+        startLabel: row.label || formatFullTime(row.ts),
+        endLabel: row.label || formatFullTime(row.ts),
+        durationMinutes: bucketMinutes
+      };
+      groups.push(active);
+    });
+    return groups;
+  }
+
+  function warningList(value) {
+    return String(value || '')
+      .split(';')
+      .map((item) => item.trim())
+      .filter((item) => item && item !== 'OK');
+  }
+
+  function warningTitle(warnings) {
+    return `สัญญาณเตือน: ${warnings.map((warning) => (WARNING_META[warning] && WARNING_META[warning].label) || warning).join(', ')}`;
+  }
+
+  function warningSeverity(warnings) {
+    return warnings.reduce((current, warning) => {
+      const severity = (WARNING_META[warning] && WARNING_META[warning].severity) || 'watch';
+      return SEVERITY_RANK[severity] > SEVERITY_RANK[current] ? severity : current;
+    }, 'watch');
+  }
+
+  function warningGroupTimeLabel(group, bucketMinutes) {
+    const latest = `ล่าสุด ${group.endLabel}`;
+    if (group.count <= 1) return latest;
+    return `${latest} | ต่อเนื่อง ${durationLabel(group.durationMinutes || group.count * bucketMinutes)}`;
+  }
+
+  function durationLabel(minutes) {
+    if (minutes < 60) return `${minutes} นาที`;
+    const hours = minutes / 60;
+    if (Number.isInteger(hours)) return `${hours} ชม.`;
+    return `${formatNumber(hours, 1)} ชม.`;
+  }
+
   function buildWeekHeatmap(rows) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const days = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
     const hours = Array.from({ length: 24 }, (_, index) => String(index));
     const groups = new Map();
     rows.forEach((row) => {
@@ -676,9 +832,9 @@
       }
     }
     return {
-      title: 'PM2.5 by weekday and hour ending',
-      subtitle: 'Weekly pattern',
-      xName: 'Hour ending (Bangkok time)',
+      title: 'PM2.5 แยกตามวันและชั่วโมงสิ้นสุด',
+      subtitle: 'รูปแบบรายสัปดาห์',
+      xName: HOUR_ENDING_AXIS_NAME,
       xLabels: hours,
       yLabels: days,
       xInterval: 2,
@@ -687,11 +843,11 @@
       max,
       tooltip: (params) => {
         const [hour, day, value] = params.value;
-        return `${days[day]} hour ending ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${days[day]} สิ้นสุด ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ${PM25_UNIT}`;
       },
       missingTooltip: (params) => {
         const [hour, day] = params.value;
-        return `${days[day]} hour ending ${pad2(hour)}:00<br>No data`;
+        return `${days[day]} สิ้นสุด ${pad2(hour)}:00<br>ไม่มีข้อมูล`;
       }
     };
   }
@@ -725,9 +881,9 @@
     });
 
     return {
-      title: 'PM2.5 by hour ending',
-      subtitle: `Daily pattern ${label}`,
-      xName: 'Hour ending (Bangkok time)',
+      title: 'PM2.5 แยกตามชั่วโมงสิ้นสุด',
+      subtitle: `รูปแบบรายวัน ${label}`,
+      xName: HOUR_ENDING_AXIS_NAME,
       xLabels: hours,
       yLabels: [label],
       xInterval: 1,
@@ -736,11 +892,11 @@
       max,
       tooltip: (params) => {
         const [hour, , value] = params.value;
-        return `${label} hour ending ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${label} สิ้นสุด ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ${PM25_UNIT}`;
       },
       missingTooltip: (params) => {
         const [hour] = params.value;
-        return `${label} hour ending ${pad2(hour)}:00<br>No data`;
+        return `${label} สิ้นสุด ${pad2(hour)}:00<br>ไม่มีข้อมูล`;
       }
     };
   }
@@ -782,9 +938,9 @@
     });
 
     return {
-      title: 'PM2.5 by day and hour ending',
-      subtitle: 'Monthly pattern',
-      xName: 'Hour ending (Bangkok time)',
+      title: 'PM2.5 แยกตามวันและชั่วโมงสิ้นสุด',
+      subtitle: 'รูปแบบรายเดือน',
+      xName: HOUR_ENDING_AXIS_NAME,
       xLabels: hours,
       yLabels: labels,
       xInterval: 2,
@@ -793,11 +949,11 @@
       max,
       tooltip: (params) => {
         const [hour, day, value] = params.value;
-        return `${labels[day]} hour ending ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${labels[day]} สิ้นสุด ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ${PM25_UNIT}`;
       },
       missingTooltip: (params) => {
         const [hour, day] = params.value;
-        return `${labels[day]} hour ending ${pad2(hour)}:00<br>No data`;
+        return `${labels[day]} สิ้นสุด ${pad2(hour)}:00<br>ไม่มีข้อมูล`;
       }
     };
   }
@@ -834,9 +990,9 @@
     });
 
     return {
-      title: 'PM2.5 daily average by month',
-      subtitle: 'Yearly pattern',
-      xName: 'Month',
+      title: 'ค่าเฉลี่ย PM2.5 รายวันแยกตามเดือน',
+      subtitle: 'รูปแบบรายปี',
+      xName: 'เดือน',
       xLabels: months,
       yLabels: days,
       xInterval: 0,
@@ -845,11 +1001,11 @@
       max,
       tooltip: (params) => {
         const [month, day, value] = params.value;
-        return `${months[month]} ${day + 1}<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${months[month]} ${day + 1}<br>PM2.5 ${formatNumber(value, 1)} ${PM25_UNIT}`;
       },
       missingTooltip: (params) => {
         const [month, day] = params.value;
-        return `${months[month]} ${day + 1}<br>No data`;
+        return `${months[month]} ${day + 1}<br>ไม่มีข้อมูล`;
       }
     };
   }
@@ -982,10 +1138,17 @@
   }
 
   function metricTimeMeta(hourLabel, dataLabel, stats) {
-    const time = hourLabel ? `Hour ending ${hourLabel}` : 'Hour ending --';
-    const data = dataLabel ? `Data ${dataLabel}` : '';
-    const avg = stats && stats.avg != null ? `Avg ${formatNumber(stats.avg, 1)}` : '';
+    const time = hourLabel ? `สิ้นสุดชั่วโมง ${hourLabel}` : 'สิ้นสุดชั่วโมง --';
+    const data = dataLabel ? `ข้อมูลจากเครื่อง ${dataLabel}` : '';
+    const avg = stats && stats.avg != null ? `เฉลี่ยช่วงที่เลือก ${formatNumber(stats.avg, 1)}` : '';
     return [time, data, avg].filter(Boolean).join(' | ');
+  }
+
+  function instrumentStatusText(value) {
+    const warnings = warningList(value);
+    if (!warnings.length) return 'OK';
+    const severity = warningSeverity(warnings);
+    return severity === 'severe' ? 'เตือนรุนแรง' : 'มีสัญญาณเตือน';
   }
 
   function pad2(value) {

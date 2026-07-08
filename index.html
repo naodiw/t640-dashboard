@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,10 +8,10 @@
     window.T640_DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
   </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2320262f'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%2316a36f'/%3E%3Ccircle cx='32' cy='32' r='7' fill='white'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=sheet-config">
+  <link rel="stylesheet" href="./style.css?v=dashboard-polish">
   <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
   <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script defer src="./app.js?v=x-axis-labels"></script>
+  <script defer src="./app.js?v=dashboard-polish"></script>
 </head>
 <body>
   <div class="shell">
@@ -22,11 +22,12 @@
           <p id="sourceNote" class="eyebrow">Public Air Monitor</p>
           <h1 id="pageTitle">T640 Live Dashboard</h1>
           <p id="ownerNote" class="owner-note" hidden></p>
+          <button id="headerDetailsToggle" class="header-toggle" type="button" hidden aria-expanded="false">แสดงรายละเอียด</button>
         </div>
       </div>
       <div class="top-actions">
-        <div id="liveStatus" class="status-pill status-muted">Loading</div>
-        <button id="refreshButton" class="icon-button" type="button" aria-label="Refresh" title="Refresh">
+        <div id="liveStatus" class="status-pill status-muted">กำลังโหลด</div>
+        <button id="refreshButton" class="icon-button" type="button" aria-label="รีเฟรช" title="รีเฟรช">
           <i data-lucide="refresh-cw"></i>
         </button>
       </div>
@@ -41,9 +42,9 @@
         <button type="button" data-days="365">1y</button>
       </div>
       <label class="select-wrap">
-        <span>Resolution</span>
+        <span>ความละเอียด</span>
         <select id="resolutionSelect">
-          <option value="auto">Auto</option>
+          <option value="auto">อัตโนมัติ</option>
           <option value="1h">1h</option>
           <option value="6h">6h</option>
           <option value="1d">1d</option>
@@ -56,31 +57,31 @@
         <article id="pm25Card" class="metric-card metric-primary metric-feature">
           <p>PM2.5</p>
           <strong id="pm25Value">--</strong>
-          <span>ug/m3</span>
+          <span>µg/m³</span>
           <small id="pm25Meta">--</small>
         </article>
         <article id="pm10Card" class="metric-card metric-feature">
           <p>PM10</p>
           <strong id="pm10Value">--</strong>
-          <span>ug/m3</span>
+          <span>µg/m³</span>
           <small id="pm10Meta">--</small>
         </article>
         <article class="metric-card">
-          <p>Ambient temp</p>
+          <p>อุณหภูมิ</p>
           <strong id="tempValue">--</strong>
-          <span>deg C</span>
-          <small id="tempMeta">Outdoor sensor</small>
+          <span>°C</span>
+          <small id="tempMeta">เซนเซอร์ภายนอก</small>
         </article>
         <article class="metric-card">
-          <p>Pressure</p>
+          <p>ความดัน</p>
           <strong id="pressureValue">--</strong>
           <span>mmHg</span>
-          <small id="pressureMeta">Barometric</small>
+          <small id="pressureMeta">ความดันบรรยากาศ</small>
         </article>
         <article id="warningCard" class="metric-card">
-          <p>Instrument</p>
+          <p>เครื่องมือ</p>
           <strong id="warningValue">--</strong>
-          <span>Status</span>
+          <span>สถานะ</span>
           <small id="lastSeenMeta">--</small>
         </article>
       </section>
@@ -89,10 +90,10 @@
         <article class="chart-panel chart-wide">
           <div class="panel-heading">
             <div>
-              <p>Particulate trend</p>
-              <h2>Hourly ending PM2.5 and PM10</h2>
+              <p>แนวโน้มฝุ่น</p>
+              <h2>PM2.5 และ PM10 รายชั่วโมง</h2>
             </div>
-            <span id="pointCount">-- points</span>
+            <span id="pointCount">-- จุดข้อมูล</span>
           </div>
           <div id="pmChart" class="chart"></div>
         </article>
@@ -100,8 +101,8 @@
         <article class="chart-panel">
           <div class="panel-heading">
             <div>
-              <p>24h average</p>
-              <h2>Rolling exposure</h2>
+              <p>ค่าเฉลี่ย 24 ชั่วโมง</p>
+              <h2>การรับสัมผัสย้อนหลัง</h2>
             </div>
           </div>
           <div id="rollingChart" class="chart small-chart"></div>
@@ -110,8 +111,8 @@
         <article class="chart-panel">
           <div class="panel-heading">
             <div>
-              <p>Environment</p>
-              <h2>Temp and pressure</h2>
+              <p>สภาพแวดล้อม</p>
+              <h2>อุณหภูมิและความดัน</h2>
             </div>
           </div>
           <div id="envChart" class="chart small-chart"></div>
@@ -120,18 +121,18 @@
         <article class="chart-panel chart-wide">
           <div class="panel-heading">
             <div>
-              <p id="heatmapSubtitle">Weekly pattern</p>
-              <h2 id="heatmapTitle">PM2.5 by weekday and hour ending</h2>
+              <p id="heatmapSubtitle">รูปแบบรายสัปดาห์</p>
+              <h2 id="heatmapTitle">PM2.5 แยกตามวันและชั่วโมงสิ้นสุด</h2>
             </div>
             <div class="heatmap-tools">
               <div id="heatmapModeControl" class="segmented compact" aria-label="Heatmap mode">
-                <button type="button" data-mode="day">Day</button>
-                <button type="button" data-mode="week" class="active">Week</button>
-                <button type="button" data-mode="month">Month</button>
-                <button type="button" data-mode="year">Year</button>
+                <button type="button" data-mode="day">วัน</button>
+                <button type="button" data-mode="week" class="active">สัปดาห์</button>
+                <button type="button" data-mode="month">เดือน</button>
+                <button type="button" data-mode="year">ปี</button>
               </div>
               <label class="date-wrap">
-                <span id="periodInputLabel">Week of</span>
+                <span id="periodInputLabel">สัปดาห์ของ</span>
                 <input id="periodInput" type="date">
               </label>
             </div>
@@ -142,8 +143,8 @@
         <article class="chart-panel warning-panel">
           <div class="panel-heading">
             <div>
-              <p>Warnings</p>
-              <h2>Recent events</h2>
+              <p>สถานะเครื่อง</p>
+              <h2>เหตุการณ์ล่าสุด</h2>
             </div>
           </div>
           <div id="warningList" class="warning-list"></div>
