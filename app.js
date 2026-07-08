@@ -317,8 +317,8 @@
     setMetric(el.pressureValue, latest.pressure, 1);
     el.warningValue.textContent = latest.warnings || '--';
 
-    el.pm25Meta.textContent = metricTimeMeta(latest.pm25TsLabel || latest.updatedLabel, summary.pm25);
-    el.pm10Meta.textContent = metricTimeMeta(latest.pm10TsLabel || latest.updatedLabel, summary.pm10);
+    el.pm25Meta.textContent = metricTimeMeta(latest.label, latest.pm25TsLabel || latest.updatedLabel, summary.pm25);
+    el.pm10Meta.textContent = metricTimeMeta(latest.label, latest.pm10TsLabel || latest.updatedLabel, summary.pm10);
     el.tempMeta.textContent = summary.temp && summary.temp.avg != null ? `Range avg ${formatNumber(summary.temp.avg, 1)}` : 'Outdoor sensor';
     el.pressureMeta.textContent = latest.updatedLabel ? `Data ${latest.updatedLabel}` : 'Barometric';
     el.lastSeenMeta.textContent = latest.updatedLabel ? `Updated ${latest.updatedLabel}` : (latest.label ? `Hour ${latest.label}` : '--');
@@ -617,7 +617,7 @@
       }
     }
     return {
-      title: 'PM2.5 by weekday and hour',
+      title: 'PM2.5 by weekday and hour ending',
       subtitle: 'Weekly pattern',
       xLabels: hours,
       yLabels: days,
@@ -627,11 +627,11 @@
       max,
       tooltip: (params) => {
         const [hour, day, value] = params.value;
-        return `${days[day]} ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${days[day]} hour ending ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
       },
       missingTooltip: (params) => {
         const [hour, day] = params.value;
-        return `${days[day]} ${pad2(hour)}:00<br>No data`;
+        return `${days[day]} hour ending ${pad2(hour)}:00<br>No data`;
       }
     };
   }
@@ -665,7 +665,7 @@
     });
 
     return {
-      title: 'PM2.5 by hour',
+      title: 'PM2.5 by hour ending',
       subtitle: `Daily pattern ${label}`,
       xLabels: hours,
       yLabels: [label],
@@ -675,11 +675,11 @@
       max,
       tooltip: (params) => {
         const [hour, , value] = params.value;
-        return `${label} ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${label} hour ending ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
       },
       missingTooltip: (params) => {
         const [hour] = params.value;
-        return `${label} ${pad2(hour)}:00<br>No data`;
+        return `${label} hour ending ${pad2(hour)}:00<br>No data`;
       }
     };
   }
@@ -721,7 +721,7 @@
     });
 
     return {
-      title: 'PM2.5 by day and hour',
+      title: 'PM2.5 by day and hour ending',
       subtitle: 'Monthly pattern',
       xLabels: hours,
       yLabels: labels,
@@ -731,11 +731,11 @@
       max,
       tooltip: (params) => {
         const [hour, day, value] = params.value;
-        return `${labels[day]} ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+        return `${labels[day]} hour ending ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
       },
       missingTooltip: (params) => {
         const [hour, day] = params.value;
-        return `${labels[day]} ${pad2(hour)}:00<br>No data`;
+        return `${labels[day]} hour ending ${pad2(hour)}:00<br>No data`;
       }
     };
   }
@@ -918,10 +918,11 @@
     return value == null ? '--' : Number(value).toLocaleString('en-US');
   }
 
-  function metricTimeMeta(timeLabel, stats) {
-    const time = timeLabel ? `Latest hourly ${timeLabel}` : 'Latest hourly --';
+  function metricTimeMeta(hourLabel, dataLabel, stats) {
+    const time = hourLabel ? `Hour ending ${hourLabel}` : 'Hour ending --';
+    const data = dataLabel ? `Data ${dataLabel}` : '';
     const avg = stats && stats.avg != null ? `Avg ${formatNumber(stats.avg, 1)}` : '';
-    return avg ? `${time} | ${avg}` : time;
+    return [time, data, avg].filter(Boolean).join(' | ');
   }
 
   function pad2(value) {

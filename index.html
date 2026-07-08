@@ -7,10 +7,10 @@
   <script>
     window.T640_DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
   </script>
-  <link rel="stylesheet" href="./style.css?v=calendar-heatmap">
+  <link rel="stylesheet" href="./style.css?v=hour-end-safe">
   <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
   <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script defer src="./app.js?v=calendar-heatmap"></script>
+  <script defer src="./app.js?v=hour-end-safe"></script>
 </head>
 <body>
   <div class="shell">
@@ -88,7 +88,7 @@
           <div class="panel-heading">
             <div>
               <p>Particulate trend</p>
-              <h2>Hourly PM2.5 and PM10</h2>
+              <h2>Hourly ending PM2.5 and PM10</h2>
             </div>
             <span id="pointCount">-- points</span>
           </div>
@@ -119,7 +119,7 @@
           <div class="panel-heading">
             <div>
               <p id="heatmapSubtitle">Weekly pattern</p>
-              <h2 id="heatmapTitle">PM2.5 by weekday and hour</h2>
+              <h2 id="heatmapTitle">PM2.5 by weekday and hour ending</h2>
             </div>
             <div class="heatmap-tools">
               <div id="heatmapModeControl" class="segmented compact" aria-label="Heatmap mode">
