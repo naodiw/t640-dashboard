@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>T640 Live Dashboard</title>
+  <script>
+    window.T640_DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
+  </script>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span></div>
+        <div>
+          <p class="eyebrow">Public Air Monitor</p>
+          <h1>T640 Live Dashboard</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div id="liveStatus" class="status-pill status-muted">Loading</div>
+        <button id="refreshButton" class="icon-button" type="button" aria-label="Refresh" title="Refresh">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="Dashboard controls">
+      <div id="rangeControl" class="segmented" aria-label="Time range">
+        <button type="button" data-days="1">24h</button>
+        <button type="button" data-days="7" class="active">7d</button>
+        <button type="button" data-days="30">30d</button>
+        <button type="button" data-days="90">90d</button>
+        <button type="button" data-days="365">1y</button>
+      </div>
+      <label class="select-wrap">
+        <span>Resolution</span>
+        <select id="resolutionSelect">
+          <option value="auto">Auto</option>
+          <option value="1h">1h</option>
+          <option value="6h">6h</option>
+          <option value="1d">1d</option>
+        </select>
+      </label>
+    </section>
+
+    <main>
+      <section class="metric-grid" aria-label="Latest values">
+        <article id="pm25Card" class="metric-card metric-primary">
+          <p>PM2.5</p>
+          <strong id="pm25Value">--</strong>
+          <span>ug/m3</span>
+          <small id="pm25Meta">--</small>
+        </article>
+        <article id="pm10Card" class="metric-card">
+          <p>PM10</p>
+          <strong id="pm10Value">--</strong>
+          <span>ug/m3</span>
+          <small id="pm10Meta">--</small>
+        </article>
+        <article class="metric-card">
+          <p>PM10-2.5</p>
+          <strong id="coarseValue">--</strong>
+          <span>ug/m3</span>
+          <small id="coarseMeta">Coarse fraction</small>
+        </article>
+        <article class="metric-card">
+          <p>Ambient temp</p>
+          <strong id="tempValue">--</strong>
+          <span>deg C</span>
+          <small id="tempMeta">Outdoor sensor</small>
+        </article>
+        <article class="metric-card">
+          <p>Pressure</p>
+          <strong id="pressureValue">--</strong>
+          <span>mmHg</span>
+          <small id="pressureMeta">Barometric</small>
+        </article>
+        <article id="warningCard" class="metric-card">
+          <p>Instrument</p>
+          <strong id="warningValue">--</strong>
+          <span>Status</span>
+          <small id="lastSeenMeta">--</small>
+        </article>
+      </section>
+
+      <section class="chart-grid" aria-label="Charts">
+        <article class="chart-panel chart-wide">
+          <div class="panel-heading">
+            <div>
+              <p>Particulate trend</p>
+              <h2>Hourly PM2.5 and PM10</h2>
+            </div>
+            <span id="pointCount">-- points</span>
+          </div>
+          <div id="pmChart" class="chart"></div>
+        </article>
+
+        <article class="chart-panel">
+          <div class="panel-heading">
+            <div>
+              <p>24h average</p>
+              <h2>Rolling exposure</h2>
+            </div>
+          </div>
+          <div id="rollingChart" class="chart small-chart"></div>
+        </article>
+
+        <article class="chart-panel">
+          <div class="panel-heading">
+            <div>
+              <p>Environment</p>
+              <h2>Temp and pressure</h2>
+            </div>
+          </div>
+          <div id="envChart" class="chart small-chart"></div>
+        </article>
+
+        <article class="chart-panel chart-wide">
+          <div class="panel-heading">
+            <div>
+              <p>Daily pattern</p>
+              <h2>PM2.5 hourly profile</h2>
+            </div>
+          </div>
+          <div id="heatmapChart" class="chart heatmap-chart"></div>
+        </article>
+
+        <article class="chart-panel warning-panel">
+          <div class="panel-heading">
+            <div>
+              <p>Warnings</p>
+              <h2>Recent events</h2>
+            </div>
+          </div>
+          <div id="warningList" class="warning-list"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
