@@ -24,8 +24,8 @@
   function bindElements() {
     [
       'liveStatus', 'refreshButton', 'rangeControl', 'resolutionSelect', 'pm25Card', 'pm10Card',
-      'warningCard', 'pm25Value', 'pm10Value', 'coarseValue', 'tempValue', 'pressureValue',
-      'warningValue', 'pm25Meta', 'pm10Meta', 'coarseMeta', 'tempMeta', 'pressureMeta',
+      'warningCard', 'pm25Value', 'pm10Value', 'tempValue', 'pressureValue',
+      'warningValue', 'pm25Meta', 'pm10Meta', 'tempMeta', 'pressureMeta',
       'lastSeenMeta', 'pointCount', 'warningList', 'heatmapModeControl', 'heatmapSubtitle',
       'heatmapTitle'
     ].forEach((id) => {
@@ -177,14 +177,12 @@
     const summary = data.summary || {};
     setMetric(el.pm25Value, latest.pm25, 1);
     setMetric(el.pm10Value, latest.pm10, 1);
-    setMetric(el.coarseValue, latest.coarse, 1);
     setMetric(el.tempValue, latest.temp, 1);
     setMetric(el.pressureValue, latest.pressure, 1);
     el.warningValue.textContent = latest.warnings || '--';
 
     el.pm25Meta.textContent = summary.pm25 && summary.pm25.avg != null ? `Range avg ${formatNumber(summary.pm25.avg, 1)}` : '--';
     el.pm10Meta.textContent = summary.pm10 && summary.pm10.avg != null ? `Range avg ${formatNumber(summary.pm10.avg, 1)}` : '--';
-    el.coarseMeta.textContent = latest.coarse != null && latest.pm10 != null ? `${formatNumber((latest.coarse / latest.pm10) * 100, 0)}% of PM10` : 'Coarse fraction';
     el.tempMeta.textContent = summary.temp && summary.temp.avg != null ? `Range avg ${formatNumber(summary.temp.avg, 1)}` : 'Outdoor sensor';
     el.pressureMeta.textContent = data.generatedAt ? `Updated ${data.generatedAt}` : 'Barometric';
     el.lastSeenMeta.textContent = latest.updatedLabel ? `Updated ${latest.updatedLabel}` : (latest.label ? `Hour ${latest.label}` : '--');
