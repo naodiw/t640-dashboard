@@ -356,8 +356,22 @@
       legend: ['PM2.5', 'PM10'],
       yName: 'ug/m3',
       series: [
-        lineSeries('PM2.5', rows, 'pm25', '#16a36f'),
-        lineSeries('PM10', rows, 'pm10', '#3f6fb5')
+        lineSeries('PM2.5', rows, 'pm25', '#16a36f', {
+          areaColor: riskAreaGradient('rgba(22, 163, 111, 0.08)'),
+          areaOpacity: 1,
+          width: 3,
+          shadowBlur: 4,
+          shadowColor: 'rgba(22, 163, 111, 0.18)',
+          z: 3
+        }),
+        lineSeries('PM10', rows, 'pm10', '#3f6fb5', {
+          areaColor: riskAreaGradient('rgba(63, 111, 181, 0.06)'),
+          areaOpacity: 1,
+          width: 3,
+          shadowBlur: 4,
+          shadowColor: 'rgba(63, 111, 181, 0.18)',
+          z: 2
+        })
       ],
       markLines: [
         { yAxis: 15, name: '15' },
@@ -556,23 +570,42 @@
     };
   }
 
-  function lineSeries(name, rows, key, color) {
+  function lineSeries(name, rows, key, color, options = {}) {
     return {
       name,
       type: 'line',
       showSymbol: false,
       smooth: true,
       connectNulls: false,
+      z: options.z || 1,
       lineStyle: {
-        width: 2.5,
-        color
+        width: options.width || 2.5,
+        color,
+        shadowBlur: options.shadowBlur || 0,
+        shadowColor: options.shadowColor || 'transparent'
       },
       areaStyle: {
-        opacity: 0.08,
-        color
+        opacity: options.areaOpacity == null ? 0.08 : options.areaOpacity,
+        color: options.areaColor || color
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: {
+          width: (options.width || 2.5) + 0.8
+        }
       },
       data: rows.map((row) => [row.ts, row[key]])
     };
+  }
+
+  function riskAreaGradient(lowColor) {
+    return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      { offset: 0, color: 'rgba(122, 29, 29, 0.42)' },
+      { offset: 0.2, color: 'rgba(201, 59, 59, 0.30)' },
+      { offset: 0.46, color: 'rgba(238, 106, 46, 0.18)' },
+      { offset: 0.7, color: 'rgba(244, 211, 94, 0.11)' },
+      { offset: 1, color: lowColor }
+    ]);
   }
 
   function renderWarnings(rows) {
