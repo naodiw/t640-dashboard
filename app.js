@@ -611,7 +611,7 @@
   function renderWarnings(rows) {
     const warnings = rows
       .filter((row) => row.warnings && row.warnings !== 'OK')
-      .slice(-10)
+      .slice(-3)
       .reverse();
     el.warningList.replaceChildren();
     if (!warnings.length) {
