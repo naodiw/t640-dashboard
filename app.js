@@ -662,7 +662,7 @@
   }
 
   function metricTimeMeta(timeLabel, stats) {
-    const time = timeLabel ? `Data ${timeLabel}` : 'Data --';
+    const time = timeLabel ? `Latest hourly ${timeLabel}` : 'Latest hourly --';
     const avg = stats && stats.avg != null ? `Avg ${formatNumber(stats.avg, 1)}` : '';
     return avg ? `${time} | ${avg}` : time;
   }

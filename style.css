@@ -233,7 +233,7 @@ h2 {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: 1.45fr 1.45fr repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -251,8 +251,17 @@ h2 {
   border-top: 5px solid var(--line);
 }
 
+.metric-card:not(.metric-feature) {
+  background: #fbfcfd;
+}
+
 .metric-primary {
   background: #fafffc;
+}
+
+.metric-feature {
+  min-height: 172px;
+  padding: 18px 20px;
 }
 
 .metric-card strong {
@@ -261,6 +270,10 @@ h2 {
   color: var(--text);
   font-size: clamp(1.85rem, 4vw, 2.6rem);
   line-height: 1;
+}
+
+.metric-feature strong {
+  font-size: clamp(2.65rem, 5.2vw, 4rem);
 }
 
 .metric-card span {
@@ -381,7 +394,7 @@ h2 {
 
 @media (max-width: 1180px) {
   .metric-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
