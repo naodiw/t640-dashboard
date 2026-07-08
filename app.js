@@ -3,7 +3,7 @@
   const API_URL = window.T640_DASHBOARD_API || DEFAULT_API_URL;
   const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
   const PM25_UNIT = 'µg/m³';
-  const HOUR_ENDING_AXIS_NAME = 'เวลาสิ้นสุดชั่วโมง (เวลาไทย)';
+  const HOUR_ENDING_AXIS_NAME = 'เวลาสิ้นสุดชั่วโมง';
   const WARNING_META = {
     BOX_TEMP_WARNING: { label: 'Box temperature', severity: 'elevated' },
     SAMPLE_FLOW_WARNING: { label: 'Sample flow', severity: 'high' },
