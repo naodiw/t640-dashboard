@@ -464,16 +464,16 @@
       grid: {
         top: 44,
         right: 48,
-        bottom: 68,
+        bottom: timeChartGridBottom(),
         left: 48
       },
       xAxis: {
         type: 'time',
         name: HOUR_ENDING_AXIS_NAME,
         nameLocation: 'middle',
-        nameGap: 42,
+        nameGap: timeAxisNameGap(),
         nameTextStyle: axisNameTextStyle(),
-        axisLabel: { formatter: formatAxisTime }
+        axisLabel: timeAxisLabelOptions()
       },
       yAxis: [
         {
@@ -622,16 +622,16 @@
       grid: {
         top: 44,
         right: 22,
-        bottom: 68,
+        bottom: timeChartGridBottom(),
         left: 50
       },
       xAxis: {
         type: 'time',
         name: HOUR_ENDING_AXIS_NAME,
         nameLocation: 'middle',
-        nameGap: 42,
+        nameGap: timeAxisNameGap(),
         nameTextStyle: axisNameTextStyle(),
-        axisLabel: { formatter: formatAxisTime }
+        axisLabel: timeAxisLabelOptions()
       },
       yAxis: {
         type: 'value',
@@ -1152,9 +1152,32 @@
     return String(value).padStart(2, '0');
   }
 
+  function timeAxisLabelOptions() {
+    return {
+      formatter: formatAxisTime,
+      hideOverlap: true,
+      margin: 10
+    };
+  }
+
   function formatAxisTime(value) {
     const shifted = new Date(Number(value) + BANGKOK_OFFSET_MS);
+    if (isCompactViewport()) {
+      return `${pad2(shifted.getUTCDate())}/${pad2(shifted.getUTCMonth() + 1)}\n${pad2(shifted.getUTCHours())}:00`;
+    }
     return `${pad2(shifted.getUTCDate())}/${pad2(shifted.getUTCMonth() + 1)} ${pad2(shifted.getUTCHours())}:00`;
+  }
+
+  function isCompactViewport() {
+    return window.matchMedia && window.matchMedia('(max-width: 520px)').matches;
+  }
+
+  function timeChartGridBottom() {
+    return isCompactViewport() ? 82 : 68;
+  }
+
+  function timeAxisNameGap() {
+    return isCompactViewport() ? 58 : 42;
   }
 
   function axisNameTextStyle() {
