@@ -1163,7 +1163,8 @@
   function formatAxisTime(value) {
     const shifted = new Date(Number(value) + BANGKOK_OFFSET_MS);
     if (isCompactViewport()) {
-      return `${pad2(shifted.getUTCDate())}/${pad2(shifted.getUTCMonth() + 1)}\n${pad2(shifted.getUTCHours())}:00`;
+      if (state.days <= 1) return `${pad2(shifted.getUTCHours())}:00`;
+      return `${pad2(shifted.getUTCDate())}/${pad2(shifted.getUTCMonth() + 1)}`;
     }
     return `${pad2(shifted.getUTCDate())}/${pad2(shifted.getUTCMonth() + 1)} ${pad2(shifted.getUTCHours())}:00`;
   }
@@ -1173,11 +1174,11 @@
   }
 
   function timeChartGridBottom() {
-    return isCompactViewport() ? 82 : 68;
+    return isCompactViewport() ? 72 : 68;
   }
 
   function timeAxisNameGap() {
-    return isCompactViewport() ? 58 : 42;
+    return isCompactViewport() ? 46 : 42;
   }
 
   function axisNameTextStyle() {
