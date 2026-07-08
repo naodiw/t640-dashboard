@@ -181,10 +181,10 @@
     setMetric(el.pressureValue, latest.pressure, 1);
     el.warningValue.textContent = latest.warnings || '--';
 
-    el.pm25Meta.textContent = summary.pm25 && summary.pm25.avg != null ? `Range avg ${formatNumber(summary.pm25.avg, 1)}` : '--';
-    el.pm10Meta.textContent = summary.pm10 && summary.pm10.avg != null ? `Range avg ${formatNumber(summary.pm10.avg, 1)}` : '--';
+    el.pm25Meta.textContent = metricTimeMeta(latest.pm25TsLabel || latest.updatedLabel, summary.pm25);
+    el.pm10Meta.textContent = metricTimeMeta(latest.pm10TsLabel || latest.updatedLabel, summary.pm10);
     el.tempMeta.textContent = summary.temp && summary.temp.avg != null ? `Range avg ${formatNumber(summary.temp.avg, 1)}` : 'Outdoor sensor';
-    el.pressureMeta.textContent = data.generatedAt ? `Updated ${data.generatedAt}` : 'Barometric';
+    el.pressureMeta.textContent = latest.updatedLabel ? `Data ${latest.updatedLabel}` : 'Barometric';
     el.lastSeenMeta.textContent = latest.updatedLabel ? `Updated ${latest.updatedLabel}` : (latest.label ? `Hour ${latest.label}` : '--');
     el.pointCount.textContent = `${rowsLabel(data.summary && data.summary.count)} points`;
 
@@ -659,6 +659,12 @@
 
   function rowsLabel(value) {
     return value == null ? '--' : Number(value).toLocaleString('en-US');
+  }
+
+  function metricTimeMeta(timeLabel, stats) {
+    const time = timeLabel ? `Data ${timeLabel}` : 'Data --';
+    const avg = stats && stats.avg != null ? `Avg ${formatNumber(stats.avg, 1)}` : '';
+    return avg ? `${time} | ${avg}` : time;
   }
 
   function pad2(value) {
