@@ -388,8 +388,8 @@
     setMetric(el.pressureValue, latest.pressure, 1);
     el.warningValue.textContent = instrumentStatusText(latest.warnings);
 
-    el.pm25Meta.textContent = metricTimeMeta(latest.label, latest.pm25TsLabel || latest.updatedLabel, summary.pm25);
-    el.pm10Meta.textContent = metricTimeMeta(latest.label, latest.pm10TsLabel || latest.updatedLabel, summary.pm10);
+    el.pm25Meta.textContent = metricTimeMeta(latest.pm25TsLabel || latest.updatedLabel);
+    el.pm10Meta.textContent = metricTimeMeta(latest.pm10TsLabel || latest.updatedLabel);
     el.tempMeta.textContent = summary.temp && summary.temp.avg != null ? `เฉลี่ยช่วงที่เลือก ${formatNumber(summary.temp.avg, 1)}` : 'เซนเซอร์ภายนอก';
     el.pressureMeta.textContent = latest.updatedLabel ? `ข้อมูล ${latest.updatedLabel}` : 'ความดันบรรยากาศ';
     el.lastSeenMeta.textContent = latest.updatedLabel ? `อัปเดต ${latest.updatedLabel}` : (latest.label ? `ชั่วโมง ${latest.label}` : '--');
@@ -1137,11 +1137,8 @@
     return value == null ? '--' : Number(value).toLocaleString('en-US');
   }
 
-  function metricTimeMeta(hourLabel, dataLabel, stats) {
-    const time = hourLabel ? `สิ้นสุดชั่วโมง ${hourLabel}` : 'สิ้นสุดชั่วโมง --';
-    const data = dataLabel ? `ข้อมูลจากเครื่อง ${dataLabel}` : '';
-    const avg = stats && stats.avg != null ? `เฉลี่ยช่วงที่เลือก ${formatNumber(stats.avg, 1)}` : '';
-    return [time, data, avg].filter(Boolean).join(' | ');
+  function metricTimeMeta(dataLabel) {
+    return dataLabel ? `ข้อมูลเวลา ${dataLabel}` : 'ข้อมูลเวลา --';
   }
 
   function instrumentStatusText(value) {
