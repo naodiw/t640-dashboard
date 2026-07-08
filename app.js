@@ -4,8 +4,10 @@
   const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
   const state = {
     days: 7,
+    rangeMode: 'quick',
     resolution: 'auto',
     heatmapMode: 'week',
+    periodValue: '',
     data: null
   };
   const charts = {};
@@ -27,7 +29,7 @@
       'warningCard', 'pm25Value', 'pm10Value', 'tempValue', 'pressureValue',
       'warningValue', 'pm25Meta', 'pm10Meta', 'tempMeta', 'pressureMeta',
       'lastSeenMeta', 'pointCount', 'warningList', 'heatmapModeControl', 'heatmapSubtitle',
-      'heatmapTitle'
+      'heatmapTitle', 'periodInput', 'periodInputLabel'
     ].forEach((id) => {
       el[id] = document.getElementById(id);
     });
@@ -38,9 +40,11 @@
       const button = event.target.closest('button[data-days]');
       if (!button) return;
       state.days = Number(button.dataset.days);
+      state.rangeMode = 'quick';
       [...el.rangeControl.querySelectorAll('button')].forEach((item) => {
         item.classList.toggle('active', item === button);
       });
+      syncHeatmapModeFromQuickRange(state.days);
       loadDashboard();
     });
 
@@ -55,27 +59,159 @@
       const button = event.target.closest('button[data-mode]');
       if (!button) return;
       state.heatmapMode = button.dataset.mode;
-      [...el.heatmapModeControl.querySelectorAll('button')].forEach((item) => {
-        item.classList.toggle('active', item === button);
-      });
-      if (state.heatmapMode === 'month' && state.days < 30) {
-        setRangeDays(30);
-        return;
-      }
-      if (state.heatmapMode === 'year' && state.days < 365) {
-        setRangeDays(365);
-        return;
-      }
-      renderHeatmap(state.data?.rows || []);
+      state.rangeMode = 'period';
+      clearQuickRangeActive();
+      setDefaultPeriodValue();
+      syncHeatmapModeButtons();
+      syncPeriodInput();
+      loadDashboard();
     });
+
+    el.periodInput.addEventListener('change', () => {
+      state.periodValue = el.periodInput.value;
+      state.rangeMode = 'period';
+      clearQuickRangeActive();
+      loadDashboard();
+    });
+
+    setDefaultPeriodValue();
+    syncPeriodInput();
   }
 
   function setRangeDays(days) {
     state.days = days;
+    state.rangeMode = 'quick';
     [...el.rangeControl.querySelectorAll('button')].forEach((item) => {
       item.classList.toggle('active', Number(item.dataset.days) === days);
     });
+    syncHeatmapModeFromQuickRange(days);
     loadDashboard();
+  }
+
+  function dashboardRangeParams() {
+    if (state.rangeMode === 'period') {
+      const range = selectedPeriodRange();
+      return {
+        from: String(range.from),
+        to: String(range.to)
+      };
+    }
+    return { days: String(state.days) };
+  }
+
+  function selectedPeriodRange() {
+    setDefaultPeriodValue();
+    if (state.heatmapMode === 'year') {
+      const year = Number(state.periodValue) || bangkokNowParts().year;
+      return localRange(year, 0, 1, year + 1, 0, 1);
+    }
+    if (state.heatmapMode === 'month') {
+      const parts = parseMonthValue(state.periodValue) || bangkokNowParts();
+      return localRange(parts.year, parts.month - 1, 1, parts.month === 12 ? parts.year + 1 : parts.year, parts.month === 12 ? 0 : parts.month, 1);
+    }
+    if (state.heatmapMode === 'day') {
+      const parts = parseDateValue(state.periodValue) || bangkokNowParts();
+      return localRange(parts.year, parts.month - 1, parts.day, parts.year, parts.month - 1, parts.day + 1);
+    }
+
+    const parts = parseDateValue(state.periodValue) || bangkokNowParts();
+    const startMs = localStartMs(parts.year, parts.month - 1, parts.day);
+    const shifted = new Date(startMs + BANGKOK_OFFSET_MS);
+    const mondayOffset = (shifted.getUTCDay() + 6) % 7;
+    const mondayMs = startMs - mondayOffset * 24 * 3600 * 1000;
+    return {
+      from: mondayMs,
+      to: mondayMs + 7 * 24 * 3600 * 1000 - 1
+    };
+  }
+
+  function localRange(fromYear, fromMonthIndex, fromDay, toYear, toMonthIndex, toDay) {
+    return {
+      from: localStartMs(fromYear, fromMonthIndex, fromDay),
+      to: localStartMs(toYear, toMonthIndex, toDay) - 1
+    };
+  }
+
+  function localStartMs(year, monthIndex, day) {
+    return Date.UTC(year, monthIndex, day) - BANGKOK_OFFSET_MS;
+  }
+
+  function setDefaultPeriodValue() {
+    if (state.periodValue && periodValueMatchesMode(state.periodValue)) return;
+    const now = bangkokNowParts();
+    if (state.heatmapMode === 'year') state.periodValue = String(now.year);
+    else if (state.heatmapMode === 'month') state.periodValue = `${now.year}-${pad2(now.month)}`;
+    else state.periodValue = `${now.year}-${pad2(now.month)}-${pad2(now.day)}`;
+  }
+
+  function periodValueMatchesMode(value) {
+    if (state.heatmapMode === 'year') return /^\d{4}$/.test(value);
+    if (state.heatmapMode === 'month') return /^\d{4}-\d{2}$/.test(value);
+    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+
+  function syncPeriodInput() {
+    if (state.heatmapMode === 'year') {
+      el.periodInput.type = 'number';
+      el.periodInput.min = '2000';
+      el.periodInput.max = '2100';
+      el.periodInput.step = '1';
+      el.periodInputLabel.textContent = 'Year';
+    } else if (state.heatmapMode === 'month') {
+      el.periodInput.type = 'month';
+      el.periodInput.removeAttribute('min');
+      el.periodInput.removeAttribute('max');
+      el.periodInput.removeAttribute('step');
+      el.periodInputLabel.textContent = 'Month';
+    } else if (state.heatmapMode === 'day') {
+      el.periodInput.type = 'date';
+      el.periodInputLabel.textContent = 'Date';
+    } else {
+      el.periodInput.type = 'date';
+      el.periodInputLabel.textContent = 'Week of';
+    }
+    el.periodInput.value = state.periodValue;
+  }
+
+  function syncHeatmapModeButtons() {
+    [...el.heatmapModeControl.querySelectorAll('button')].forEach((item) => {
+      item.classList.toggle('active', item.dataset.mode === state.heatmapMode);
+    });
+  }
+
+  function syncHeatmapModeFromQuickRange(days) {
+    if (days === 1) state.heatmapMode = 'day';
+    else if (days >= 365) state.heatmapMode = 'year';
+    else if (days >= 30) state.heatmapMode = 'month';
+    else state.heatmapMode = 'week';
+    setDefaultPeriodValue();
+    syncHeatmapModeButtons();
+    syncPeriodInput();
+  }
+
+  function clearQuickRangeActive() {
+    [...el.rangeControl.querySelectorAll('button')].forEach((item) => item.classList.remove('active'));
+  }
+
+  function parseDateValue(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+  }
+
+  function parseMonthValue(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return null;
+    return { year: Number(match[1]), month: Number(match[2]), day: 1 };
+  }
+
+  function bangkokNowParts() {
+    const shifted = new Date(Date.now() + BANGKOK_OFFSET_MS);
+    return {
+      year: shifted.getUTCFullYear(),
+      month: shifted.getUTCMonth() + 1,
+      day: shifted.getUTCDate()
+    };
   }
 
   function initCharts() {
@@ -97,7 +233,7 @@
     try {
       const data = await fetchJsonp({
         dashboard: '1',
-        days: String(state.days),
+        ...dashboardRangeParams(),
         resolution: state.resolution
       });
       if (!data || data.status !== 'ok') {
@@ -286,16 +422,19 @@
 
   function renderHeatmap(rows) {
     const mode = state.heatmapMode;
-    const heat = mode === 'year' ? buildYearHeatmap(rows) : mode === 'month' ? buildMonthHeatmap(rows) : buildWeekHeatmap(rows);
+    const heat = mode === 'year' ? buildYearHeatmap(rows) : mode === 'month' ? buildMonthHeatmap(rows) : mode === 'day' ? buildDayHeatmap(rows) : buildWeekHeatmap(rows);
     const heatmapNode = document.getElementById('heatmapChart');
-    heatmapNode.style.height = mode === 'month' ? '620px' : mode === 'year' ? '460px' : '350px';
+    heatmapNode.style.height = mode === 'month' ? '620px' : mode === 'year' ? '460px' : mode === 'day' ? '240px' : '350px';
     el.heatmapSubtitle.textContent = heat.subtitle;
     el.heatmapTitle.textContent = heat.title;
     charts.heatmap.setOption({
       animationDuration: 450,
       tooltip: {
         position: 'top',
-        formatter: heat.tooltip
+        formatter: (params) => {
+          if (params.seriesName === 'No data') return heat.missingTooltip(params);
+          return heat.tooltip(params);
+        }
       },
       grid: {
         top: 18,
@@ -321,21 +460,39 @@
         orient: 'horizontal',
         left: 'center',
         bottom: 12,
+        seriesIndex: 1,
         inRange: {
           color: ['#d8f1e7', '#f4d35e', '#ee964b', '#c93b3b']
         }
       },
-      series: [{
-        name: 'PM2.5',
-        type: 'heatmap',
-        data: heat.data,
-        emphasis: {
+      series: [
+        {
+          name: 'No data',
+          type: 'heatmap',
+          data: heat.missingData,
           itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(24, 32, 42, 0.22)'
+            color: '#e7ebef',
+            borderColor: '#f6f8fa',
+            borderWidth: 1
+          },
+          emphasis: {
+            itemStyle: {
+              color: '#d8dee5'
+            }
+          }
+        },
+        {
+          name: 'PM2.5',
+          type: 'heatmap',
+          data: heat.data,
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(24, 32, 42, 0.22)'
+            }
           }
         }
-      }]
+      ]
     }, true);
     charts.heatmap.resize();
   }
@@ -446,10 +603,15 @@
 
     let max = 0;
     const data = [];
+    const missingData = [];
     for (let day = 0; day < 7; day += 1) {
       for (let hour = 0; hour < 24; hour += 1) {
         const item = groups.get(`${day}-${hour}`);
-        const value = item ? item.sum / item.count : 0;
+        if (!item) {
+          missingData.push([hour, day, 0]);
+          continue;
+        }
+        const value = item.sum / item.count;
         max = Math.max(max, value);
         data.push([hour, day, Math.round(value * 10) / 10]);
       }
@@ -461,29 +623,81 @@
       yLabels: days,
       xInterval: 2,
       data,
+      missingData,
       max,
       tooltip: (params) => {
         const [hour, day, value] = params.value;
         return `${days[day]} ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+      },
+      missingTooltip: (params) => {
+        const [hour, day] = params.value;
+        return `${days[day]} ${pad2(hour)}:00<br>No data`;
+      }
+    };
+  }
+
+  function buildDayHeatmap(rows) {
+    const hours = Array.from({ length: 24 }, (_, index) => String(index));
+    const label = dayRangeLabel();
+    const groups = new Map();
+
+    rows.forEach((row) => {
+      if (!row.ts || row.pm25 == null) return;
+      const hour = bangkokParts(row.ts).hour;
+      const current = groups.get(hour) || { sum: 0, count: 0 };
+      current.sum += row.pm25;
+      current.count += 1;
+      groups.set(hour, current);
+    });
+
+    let max = 0;
+    const data = [];
+    const missingData = [];
+    hours.forEach((_, hour) => {
+      const item = groups.get(hour);
+      if (!item) {
+        missingData.push([hour, 0, 0]);
+        return;
+      }
+      const value = item.sum / item.count;
+      max = Math.max(max, value);
+      data.push([hour, 0, Math.round(value * 10) / 10]);
+    });
+
+    return {
+      title: 'PM2.5 by hour',
+      subtitle: `Daily pattern ${label}`,
+      xLabels: hours,
+      yLabels: [label],
+      xInterval: 1,
+      data,
+      missingData,
+      max,
+      tooltip: (params) => {
+        const [hour, , value] = params.value;
+        return `${label} ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+      },
+      missingTooltip: (params) => {
+        const [hour] = params.value;
+        return `${label} ${pad2(hour)}:00<br>No data`;
       }
     };
   }
 
   function buildMonthHeatmap(rows) {
     const hours = Array.from({ length: 24 }, (_, index) => String(index));
-    const rowsWithDate = rows
-      .filter((row) => row.ts && row.pm25 != null)
-      .map((row) => ({ ...row, dateKey: bangkokDateKey(row.ts), label: bangkokDateLabel(row.ts) }))
-      .sort((a, b) => a.ts - b.ts);
-    const labels = [...new Map(rowsWithDate.map((row) => [row.dateKey, row.label])).values()].slice(-31);
-    const keys = [...new Set(rowsWithDate.map((row) => row.dateKey))].slice(-31);
+    const monthDays = monthDayLabels();
+    const labels = monthDays.map((item) => item.label);
+    const keys = monthDays.map((item) => item.key);
     const keyIndex = new Map(keys.map((key, index) => [key, index]));
     const groups = new Map();
 
-    rowsWithDate.forEach((row) => {
-      if (!keyIndex.has(row.dateKey)) return;
+    rows.forEach((row) => {
+      if (!row.ts || row.pm25 == null) return;
+      const dateKey = bangkokDateKey(row.ts);
+      if (!keyIndex.has(dateKey)) return;
       const hour = bangkokParts(row.ts).hour;
-      const key = `${keyIndex.get(row.dateKey)}-${hour}`;
+      const key = `${keyIndex.get(dateKey)}-${hour}`;
       const current = groups.get(key) || { sum: 0, count: 0 };
       current.sum += row.pm25;
       current.count += 1;
@@ -492,10 +706,15 @@
 
     let max = 0;
     const data = [];
+    const missingData = [];
     labels.forEach((_, dayIndex) => {
       hours.forEach((_, hour) => {
         const item = groups.get(`${dayIndex}-${hour}`);
-        const value = item ? item.sum / item.count : 0;
+        if (!item) {
+          missingData.push([hour, dayIndex, 0]);
+          return;
+        }
+        const value = item.sum / item.count;
         max = Math.max(max, value);
         data.push([hour, dayIndex, Math.round(value * 10) / 10]);
       });
@@ -508,10 +727,15 @@
       yLabels: labels,
       xInterval: 2,
       data,
+      missingData,
       max,
       tooltip: (params) => {
         const [hour, day, value] = params.value;
         return `${labels[day]} ${pad2(hour)}:00<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+      },
+      missingTooltip: (params) => {
+        const [hour, day] = params.value;
+        return `${labels[day]} ${pad2(hour)}:00<br>No data`;
       }
     };
   }
@@ -533,10 +757,15 @@
 
     let max = 0;
     const data = [];
+    const missingData = [];
     days.forEach((_, dayIndex) => {
       months.forEach((_, monthIndex) => {
         const item = groups.get(`${monthIndex}-${dayIndex + 1}`);
-        const value = item ? item.sum / item.count : 0;
+        if (!item) {
+          missingData.push([monthIndex, dayIndex, 0]);
+          return;
+        }
+        const value = item.sum / item.count;
         max = Math.max(max, value);
         data.push([monthIndex, dayIndex, Math.round(value * 10) / 10]);
       });
@@ -549,10 +778,15 @@
       yLabels: days,
       xInterval: 0,
       data,
+      missingData,
       max,
       tooltip: (params) => {
         const [month, day, value] = params.value;
         return `${months[month]} ${day + 1}<br>PM2.5 ${formatNumber(value, 1)} ug/m3`;
+      },
+      missingTooltip: (params) => {
+        const [month, day] = params.value;
+        return `${months[month]} ${day + 1}<br>No data`;
       }
     };
   }
@@ -564,6 +798,29 @@
       day: (jsDay + 6) % 7,
       hour: shifted.getUTCHours()
     };
+  }
+
+  function dayRangeLabel() {
+    const parts = state.rangeMode === 'period' && state.heatmapMode === 'day'
+      ? parseDateValue(state.periodValue)
+      : bangkokNowParts();
+    return `${pad2(parts.day)}/${pad2(parts.month)}`;
+  }
+
+  function monthDayLabels() {
+    const parts = state.rangeMode === 'period' && state.heatmapMode === 'month'
+      ? parseMonthValue(state.periodValue)
+      : bangkokNowParts();
+    const year = parts.year;
+    const month = parts.month;
+    const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return Array.from({ length: count }, (_, index) => {
+      const day = index + 1;
+      return {
+        key: `${year}-${pad2(month)}-${pad2(day)}`,
+        label: `${pad2(day)}/${pad2(month)}`
+      };
+    });
   }
 
   function bangkokDateKey(ts) {

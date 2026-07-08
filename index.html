@@ -7,10 +7,10 @@
   <script>
     window.T640_DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
   </script>
-  <link rel="stylesheet" href="./style.css?v=hourly-pm-emphasis">
+  <link rel="stylesheet" href="./style.css?v=calendar-heatmap">
   <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
   <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script defer src="./app.js?v=hourly-pm-emphasis"></script>
+  <script defer src="./app.js?v=calendar-heatmap"></script>
 </head>
 <body>
   <div class="shell">
@@ -121,10 +121,17 @@
               <p id="heatmapSubtitle">Weekly pattern</p>
               <h2 id="heatmapTitle">PM2.5 by weekday and hour</h2>
             </div>
-            <div id="heatmapModeControl" class="segmented compact" aria-label="Heatmap mode">
-              <button type="button" data-mode="week" class="active">Week</button>
-              <button type="button" data-mode="month">Month</button>
-              <button type="button" data-mode="year">Year</button>
+            <div class="heatmap-tools">
+              <div id="heatmapModeControl" class="segmented compact" aria-label="Heatmap mode">
+                <button type="button" data-mode="day">Day</button>
+                <button type="button" data-mode="week" class="active">Week</button>
+                <button type="button" data-mode="month">Month</button>
+                <button type="button" data-mode="year">Year</button>
+              </div>
+              <label class="date-wrap">
+                <span id="periodInputLabel">Week of</span>
+                <input id="periodInput" type="date">
+              </label>
             </div>
           </div>
           <div id="heatmapChart" class="chart heatmap-chart"></div>

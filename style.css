@@ -27,8 +27,13 @@ body {
 }
 
 button,
+input,
 select {
   font: inherit;
+}
+
+input {
+  color: inherit;
 }
 
 .shell {
@@ -205,6 +210,39 @@ h2 {
   min-height: 30px;
   padding: 0 10px;
   font-size: 0.84rem;
+}
+
+.heatmap-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px 4px 10px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.date-wrap input {
+  min-width: 132px;
+  min-height: 30px;
+  padding: 0 8px;
+  color: var(--text);
+  background: var(--surface-soft);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-weight: 700;
 }
 
 .select-wrap {
@@ -411,6 +449,10 @@ h2 {
 
   .panel-heading {
     flex-direction: column;
+  }
+
+  .heatmap-tools {
+    justify-content: flex-start;
   }
 
   .top-actions {
