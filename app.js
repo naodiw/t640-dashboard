@@ -261,7 +261,7 @@
       const timeout = window.setTimeout(() => {
         cleanup();
         reject(new Error('Dashboard API timeout'));
-      }, 25000);
+      }, 60000);
 
       window[callbackName] = (payload) => {
         cleanup();
