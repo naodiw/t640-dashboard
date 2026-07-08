@@ -124,8 +124,13 @@
         <article class="chart-panel chart-wide">
           <div class="panel-heading">
             <div>
-              <p>Daily pattern</p>
-              <h2>PM2.5 hourly profile</h2>
+              <p id="heatmapSubtitle">Weekly pattern</p>
+              <h2 id="heatmapTitle">PM2.5 by weekday and hour</h2>
+            </div>
+            <div id="heatmapModeControl" class="segmented compact" aria-label="Heatmap mode">
+              <button type="button" data-mode="week" class="active">Week</button>
+              <button type="button" data-mode="month">Month</button>
+              <button type="button" data-mode="year">Year</button>
             </div>
           </div>
           <div id="heatmapChart" class="chart heatmap-chart"></div>
