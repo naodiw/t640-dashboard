@@ -1,6 +1,7 @@
 (() => {
   const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxghsmRB0sMZ4ooEBECytx3lbiFicwEvlMkSTcLzIUPhqoytcMhJQnu7uajKwHg_iim/exec';
   const API_URL = window.T640_DASHBOARD_API || DEFAULT_API_URL;
+  const CACHE_API = (window.T640_CACHE_API || '').replace(/\/+$/, '');
   const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
   const PM25_UNIT = 'µg/m³';
   const HOUR_ENDING_AXIS_NAME = 'เวลาสิ้นสุดชั่วโมง';
@@ -257,24 +258,104 @@
     }
   }
 
+  let loadSeq = 0;
+
   async function loadDashboard() {
+    const seq = ++loadSeq;
     setLoading(true);
     clearError();
+    const params = {
+      dashboard: '1',
+      ...dashboardRangeParams(),
+      resolution: state.resolution
+    };
+    const snapKey = snapshotKey(params);
+
+    // แสดงข้อมูลชุดล่าสุดที่เคยโหลดในเบราว์เซอร์นี้ทันที ระหว่างรอข้อมูลใหม่
+    const snap = snapKey ? loadSnapshot(snapKey) : null;
+    if (snap) {
+      state.data = refreshAge(snap);
+      renderDashboard(state.data);
+    }
+
     try {
-      const data = await fetchJsonp({
-        dashboard: '1',
-        ...dashboardRangeParams(),
-        resolution: state.resolution
-      });
+      let data = null;
+      if (CACHE_API) {
+        try {
+          data = await fetchWorker(params);
+        } catch (error) {
+          // Worker ใช้ไม่ได้ ถอยไปเรียก Apps Script ตรงเหมือนเดิม
+        }
+      }
+      if (!data) data = await fetchJsonp(params);
       if (!data || data.status !== 'ok') {
         throw new Error(data && data.message ? data.message : 'Dashboard API error');
       }
-      state.data = data;
-      renderDashboard(data);
+      if (seq !== loadSeq) return; // ผู้ใช้เปลี่ยนช่วงเวลาไปแล้ว
+      state.data = refreshAge(data);
+      if (snapKey) saveSnapshot(snapKey, data);
+      renderDashboard(state.data);
     } catch (error) {
-      showError(error.message || String(error));
+      if (seq !== loadSeq) return;
+      if (!snap) showError(error.message || String(error));
     } finally {
-      setLoading(false);
+      if (seq === loadSeq) setLoading(false);
+    }
+  }
+
+  /** ทางหลัก: Cloudflare Worker ช่วงด่วนตอบจากแคชทันที ช่วงที่เลือกเองอาจรอ Apps Script */
+  async function fetchWorker(params) {
+    const quick = !params.from && !params.to && params.resolution === 'auto';
+    const url = `${CACHE_API}/api?${new URLSearchParams(params).toString()}`;
+    const tries = quick ? 2 : 1;
+    let lastError;
+    for (let i = 0; i < tries; i += 1) {
+      const ctrl = new AbortController();
+      const timer = window.setTimeout(() => ctrl.abort(), quick ? 10000 : 60000);
+      try {
+        const response = await fetch(url, { credentials: 'omit', cache: 'no-store', signal: ctrl.signal });
+        const data = await response.json();
+        if (data && data.status === 'ok') return data;
+        throw new Error(data && data.message ? data.message : `HTTP ${response.status}`);
+      } catch (error) {
+        lastError = error;
+      } finally {
+        window.clearTimeout(timer);
+      }
+    }
+    throw lastError;
+  }
+
+  // ข้อมูลจากแคชอาจสร้างไว้หลายนาทีแล้ว คำนวณอายุข้อมูลเครื่องใหม่จากเวลาปัจจุบัน
+  function refreshAge(data) {
+    const latest = data && data.latest;
+    if (latest && latest.updatedTs) {
+      latest.ageMinutes = Math.max(0, Math.floor((Date.now() - latest.updatedTs) / 60000));
+      if (latest.thresholdMinutes) latest.stale = latest.ageMinutes > latest.thresholdMinutes;
+    }
+    return data;
+  }
+
+  // เก็บเฉพาะช่วงด่วน (24h/7d/30d/90d/1y แบบอัตโนมัติ) ช่วงที่เลือกเองไม่ต้องจำ
+  function snapshotKey(params) {
+    if (params.from || params.to || params.resolution !== 'auto') return '';
+    return `t640.snapshot.${params.days}`;
+  }
+
+  function loadSnapshot(key) {
+    try {
+      const data = JSON.parse(localStorage.getItem(key) || 'null');
+      return data && data.status === 'ok' ? data : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveSnapshot(key, data) {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      // พื้นที่เต็มหรือถูกปิด ไม่เป็นไร
     }
   }
 
